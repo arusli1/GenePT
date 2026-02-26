@@ -118,11 +118,11 @@ Paper Section 4.4; focuses on Cardiomyocyte and Aorta subsets.
 ## Status snapshot (what we have, what we did, what we need)
 ### What we have locally
 - Datasets present (current paths):
-  - Aorta: `datasets/aorta/sample_aorta_data_updated.h5ad`, `datasets/aorta/sample_aorta_data_updated_from_drive.h5ad`.
+  - Aorta: `datasets/GenePT_analysis_datasets/sample_aorta_data_updated.h5ad`.
   - hPancreas: `datasets/hpancreas/demo_test.h5ad`.
   - Myeloid: `datasets/myeloid/myeloid_combined.h5ad`.
   - MS: `datasets/ms/c_data.h5ad`.
-  - Cardiomyocyte: `datasets/cardiomyocyte/sample_heart_data.h5ad`.
+  - Cardiomyocyte: `datasets/GenePT_analysis_datasets/sample_heart_data.h5ad`.
   - Additional (paper subsets): `datasets/GenePT_analysis_datasets/sample_aorta_data_updated.h5ad`, `datasets/GenePT_analysis_datasets/sample_heart_data.h5ad`.
 - GEO raw downloads:
   - Bones (GSE152805): `datasets/bones_GSE152805/GSE152805_RAW.tar`.
@@ -141,16 +141,14 @@ Paper Section 4.4; focuses on Cardiomyocyte and Aorta subsets.
 
 ### What we have produced
 - Cell-level benchmark outputs (GenePT-w only): `benchmarks/outputs/cell_level_benchmark.csv|md|json`.
+- Benchmark runner now supports scGPT/Geneformer embeddings, ensemble kNN, and Section 4.4 metrics (needs re-run).
 - Paper-style tables (GenePT-w only): `benchmarks/outputs/paper_tables/table2_genept_w.*`, `tableC4_genept_w.*`.
 - Paper-style figures (GenePT-w only): `benchmarks/outputs/paper_figures/figure3_aorta_genept_w.png`, `figureD8_cardiomyocyte_genept_w.png`.
 
 ### What is missing (needed to match the paper)
-- Datasets: Artery, Bones.
-- Aorta 20% subset: now present as `datasets/GenePT_analysis_datasets/sample_aorta_data_updated.h5ad` (verify this is the exact subset used in the paper).
-- Cardiomyocyte 10% subset: present as `datasets/GenePT_analysis_datasets/sample_heart_data.h5ad` (verify this matches the paper’s 10% subset).
+- Labels: Artery/Bones h5ad files still lack cell-type annotations needed for Table 2 / C4.
 - Embeddings: GenePT-s cell embeddings (all datasets), Geneformer embeddings, scGPT embeddings.
 - Paper-specific runs: GenePT-s UMAPs for Figure 3 and Figure D8; Table 2 / Table C4 results with GenePT-s, Geneformer, scGPT.
- - Labels: Artery/Bones h5ad files do not yet include cell-type annotations needed for Table 2 / C4.
 
 ### What to verify
 - MS age label handling (paper may discretize age).
@@ -186,6 +184,6 @@ Delta = ours - paper. This makes it easy to see how close we are.
 | Multiple Sclerosis | Cell type | 0.17 / 0.32 / -0.02 | 0.039 / 0.144 / -0.21 | -0.131 / -0.176 / -0.19 |
 
 ## Gaps to close
-- Datasets: Artery, Bones, exact Aorta 20% subset, exact Cardiomyocyte 10% subset.
+- Labels: Artery/Bones cell-type annotations.
 - Embeddings: GenePT-s, Geneformer, scGPT (cell-level).
 - Verification: MS age binning; subset sampling; label key alignment.

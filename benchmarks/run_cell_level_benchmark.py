@@ -9,7 +9,8 @@ import scanpy as sc
 import sklearn
 from scipy import sparse
 from sklearn.cluster import MiniBatchKMeans
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, TruncatedSVD
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import silhouette_score
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import NearestNeighbors
@@ -151,21 +152,113 @@ def clustering_metrics(cell_emb: np.ndarray, labels):
     return ari, ami
 
 
-def knn_metrics(cell_emb: np.ndarray, labels):
+def clustering_metrics_k(cell_emb: np.ndarray, labels, k: int):
     if labels is None:
-        return None, None, None, None
-    X_train, X_test, y_train, y_test = train_test_split(
-        cell_emb, labels, test_size=0.20, random_state=RANDOM_SEED
+        return None, None
+    kmeans = MiniBatchKMeans(
+        n_clusters=k,
+        random_state=RANDOM_SEED,
+        batch_size=20,
     )
+    kmeans.fit(cell_emb)
+    ari = sklearn.metrics.adjusted_rand_score(kmeans.labels_, labels)
+    ami = sklearn.metrics.adjusted_mutual_info_score(kmeans.labels_, labels)
+    return ari, ami
+
+
+def get_train_test_indices(labels, test_size: float = 0.20):
+    labels = np.asarray(labels)
+    stratify = None
+    if len(np.unique(labels)) > 1:
+        _, counts = np.unique(labels, return_counts=True)
+        if counts.min() >= 2:
+            stratify = labels
+    idx = np.arange(len(labels))
+    train_idx, test_idx = train_test_split(
+        idx,
+        test_size=test_size,
+        random_state=RANDOM_SEED,
+        stratify=stratify,
+    )
+    return train_idx, test_idx
+
+
+def knn_metrics_from_split(cell_emb: np.ndarray, labels, train_idx, test_idx):
     nn = NearestNeighbors(n_neighbors=10, metric="cosine")
-    nn.fit(X_train)
-    neighbors = nn.kneighbors(X_test, return_distance=False)
+    nn.fit(cell_emb[train_idx])
+    neighbors = nn.kneighbors(cell_emb[test_idx], return_distance=False)
+    y_train = np.asarray(labels)[train_idx]
+    y_test = np.asarray(labels)[test_idx]
     preds = [pd.Series(y_train[n]).mode().iloc[0] for n in neighbors]
     acc = sklearn.metrics.accuracy_score(y_test, preds)
     prec, rec, f1, _ = sklearn.metrics.precision_recall_fscore_support(
         y_test, preds, average="macro", zero_division=0
     )
     return acc, prec, rec, f1
+
+
+def knn_metrics(cell_emb: np.ndarray, labels):
+    if labels is None:
+        return None, None, None, None
+    train_idx, test_idx = get_train_test_indices(labels, test_size=0.20)
+    return knn_metrics_from_split(cell_emb, labels, train_idx, test_idx)
+
+
+def knn_ensemble_metrics(embeddings, labels, train_idx, test_idx):
+    if labels is None or not embeddings:
+        return None, None, None, None
+    y_train = np.asarray(labels)[train_idx]
+    y_test = np.asarray(labels)[test_idx]
+    all_neighbor_labels = []
+    for emb in embeddings:
+        nn = NearestNeighbors(n_neighbors=10, metric="cosine")
+        nn.fit(emb[train_idx])
+        neighbors = nn.kneighbors(emb[test_idx], return_distance=False)
+        neighbor_labels = [y_train[n] for n in neighbors]
+        all_neighbor_labels.append(neighbor_labels)
+    final_preds = []
+    for i in range(len(test_idx)):
+        votes = np.concatenate([labels_list[i] for labels_list in all_neighbor_labels])
+        final_preds.append(pd.Series(votes).mode().iloc[0])
+    acc = sklearn.metrics.accuracy_score(y_test, final_preds)
+    prec, rec, f1, _ = sklearn.metrics.precision_recall_fscore_support(
+        y_test, final_preds, average="macro", zero_division=0
+    )
+    return acc, prec, rec, f1
+
+
+def pca_kmeans_ari(X, labels, k: int, pca_n: int = 50):
+    if labels is None:
+        return None
+    n_components = min(pca_n, X.shape[0] - 1, X.shape[1])
+    if n_components < 2:
+        return None
+    if sparse.issparse(X):
+        reducer = TruncatedSVD(n_components=n_components, random_state=RANDOM_SEED)
+        X_reduced = reducer.fit_transform(X)
+    else:
+        reducer = PCA(n_components=n_components, random_state=RANDOM_SEED, svd_solver="full")
+        X_reduced = reducer.fit_transform(X)
+    kmeans = MiniBatchKMeans(n_clusters=k, random_state=RANDOM_SEED, batch_size=50)
+    kmeans.fit(X_reduced)
+    return sklearn.metrics.adjusted_rand_score(kmeans.labels_, labels)
+
+
+def logreg_metrics(cell_emb: np.ndarray, labels, train_idx, test_idx):
+    if labels is None:
+        return None, None, None
+    X_train = cell_emb[train_idx]
+    X_test = cell_emb[test_idx]
+    y_train = np.asarray(labels)[train_idx]
+    y_test = np.asarray(labels)[test_idx]
+    model = LogisticRegression(max_iter=1000, n_jobs=1)
+    model.fit(X_train, y_train)
+    preds = model.predict(X_test)
+    acc = sklearn.metrics.accuracy_score(y_test, preds)
+    prec, rec, _f1, _ = sklearn.metrics.precision_recall_fscore_support(
+        y_test, preds, average="macro", zero_division=0
+    )
+    return acc, prec, rec
 
 
 def silhouette_metrics(cell_emb: np.ndarray, labels, sample_size: int = 5000):
@@ -286,12 +379,76 @@ def main():
             missing_requirements.append(
                 f"GenePT-s missing for {ds_name}: {genept_s_path}"
             )
+        # scGPT (optional)
+        scgpt_emb = None
+        scgpt_dim = None
+        scgpt_paths = config.get("embeddings", {}).get("scgpt", {}).get(
+            "cell_embedding_paths", {}
+        )
+        scgpt_path = scgpt_paths.get(ds_name)
+        if scgpt_path is not None:
+            scgpt_path = root / scgpt_path
+            if scgpt_path.exists():
+                scgpt_emb, scgpt_dim = load_genept_s_embeddings(
+                    scgpt_path, adata.n_obs
+                )
+            else:
+                missing_requirements.append(
+                    f"scGPT embeddings missing for {ds_name}: {scgpt_path}"
+                )
+        # Geneformer (optional)
+        geneformer_emb = None
+        geneformer_dim = None
+        geneformer_paths = config.get("embeddings", {}).get("geneformer", {}).get(
+            "cell_embedding_paths", {}
+        )
+        geneformer_path = geneformer_paths.get(ds_name)
+        if geneformer_path is not None:
+            geneformer_path = root / geneformer_path
+            if geneformer_path.exists():
+                geneformer_emb, geneformer_dim = load_genept_s_embeddings(
+                    geneformer_path, adata.n_obs
+                )
+            else:
+                missing_requirements.append(
+                    f"Geneformer embeddings missing for {ds_name}: {geneformer_path}"
+                )
+
+        # Section 4.4 metrics (batch-effect + phenotype preservation)
+        section44_cfg = ds_cfg.get("section44")
+        batch_ari_expr = batch_ari_genept_w = None
+        phenotype_ari_k = None
+        phenotype_lr_acc = phenotype_lr_prec = phenotype_lr_rec = None
+        if section44_cfg:
+            pca_n = int(section44_cfg.get("pca_n", 50))
+            batch_k = int(section44_cfg.get("batch_k"))
+            batch_ari_expr = pca_kmeans_ari(expr.X, patient_labels, batch_k, pca_n=pca_n)
+            batch_ari_genept_w = pca_kmeans_ari(
+                sanitize_embeddings(genept_w_emb), patient_labels, batch_k, pca_n=pca_n
+            )
+            phenotype_k = section44_cfg.get("phenotype_k")
+            if phenotype_k is not None and phenotype_labels is not None:
+                phenotype_ari_k, _ = clustering_metrics_k(
+                    sanitize_embeddings(genept_w_emb), phenotype_labels, int(phenotype_k)
+                )
+            if phenotype_labels is not None:
+                ph_train_idx, ph_test_idx = get_train_test_indices(phenotype_labels)
+                phenotype_lr_acc, phenotype_lr_prec, phenotype_lr_rec = logreg_metrics(
+                    sanitize_embeddings(genept_w_emb),
+                    phenotype_labels,
+                    ph_train_idx,
+                    ph_test_idx,
+                )
 
         embedding_variants = [
             ("genept_w", genept_w_emb, genept_w_dim, genept_w_missing),
         ]
         if genept_s_emb is not None:
             embedding_variants.insert(0, ("genept_s", genept_s_emb, genept_s_dim, "NA"))
+        if scgpt_emb is not None:
+            embedding_variants.append(("scgpt", scgpt_emb, scgpt_dim, "NA"))
+        if geneformer_emb is not None:
+            embedding_variants.append(("geneformer", geneformer_emb, geneformer_dim, "NA"))
 
         for emb_name, cell_emb, emb_dim, missing in embedding_variants:
             cell_emb = sanitize_embeddings(cell_emb)
@@ -337,8 +494,20 @@ def main():
             phenotype_asw = silhouette_metrics(cell_emb, phenotype_labels)
             patient_asw = silhouette_metrics(cell_emb, patient_labels)
 
-            acc, prec, rec, f1 = knn_metrics(ct_emb, ct_labels)
-            ph_acc, ph_prec, ph_rec, ph_f1 = knn_metrics(cell_emb, phenotype_labels)
+            if ct_labels is not None:
+                ct_train_idx, ct_test_idx = get_train_test_indices(ct_labels)
+                acc, prec, rec, f1 = knn_metrics_from_split(
+                    ct_emb, ct_labels, ct_train_idx, ct_test_idx
+                )
+            else:
+                acc, prec, rec, f1 = (None, None, None, None)
+            if phenotype_labels is not None:
+                ph_train_idx, ph_test_idx = get_train_test_indices(phenotype_labels)
+                ph_acc, ph_prec, ph_rec, ph_f1 = knn_metrics_from_split(
+                    cell_emb, phenotype_labels, ph_train_idx, ph_test_idx
+                )
+            else:
+                ph_acc, ph_prec, ph_rec, ph_f1 = (None, None, None, None)
 
             results.append(
                 {
@@ -363,8 +532,59 @@ def main():
                     "patient_asw": patient_asw,
                     "embed_dim": emb_dim,
                     "missing_genes": missing,
+                    "batch_patient_ari_expr": batch_ari_expr if emb_name == "genept_w" else None,
+                    "batch_patient_ari_genept_w": batch_ari_genept_w if emb_name == "genept_w" else None,
+                    "phenotype_ari_k": phenotype_ari_k if emb_name == "genept_w" else None,
+                    "phenotype_lr_accuracy": phenotype_lr_acc if emb_name == "genept_w" else None,
+                    "phenotype_lr_precision": phenotype_lr_prec if emb_name == "genept_w" else None,
+                    "phenotype_lr_recall": phenotype_lr_rec if emb_name == "genept_w" else None,
                 }
             )
+
+        # 10-NN ensemble (GenePT-w + GenePT-s + scGPT)
+        ensemble_acc = ensemble_prec = ensemble_rec = ensemble_f1 = None
+        if ct_labels is not None:
+            ensemble_inputs = []
+            for emb in (genept_w_emb, genept_s_emb, scgpt_emb):
+                if emb is not None:
+                    ensemble_inputs.append(sanitize_embeddings(emb))
+            if len(ensemble_inputs) >= 2:
+                ct_train_idx, ct_test_idx = get_train_test_indices(ct_labels)
+                ensemble_acc, ensemble_prec, ensemble_rec, ensemble_f1 = knn_ensemble_metrics(
+                    ensemble_inputs, ct_labels, ct_train_idx, ct_test_idx
+                )
+
+        results.append(
+            {
+                "dataset": ds_name,
+                "embedding": "ensemble",
+                "accuracy": ensemble_acc,
+                "precision": ensemble_prec,
+                "recall": ensemble_rec,
+                "f1": ensemble_f1,
+                "phenotype_accuracy": None,
+                "phenotype_precision": None,
+                "phenotype_recall": None,
+                "phenotype_f1": None,
+                "celltype_ari": None,
+                "celltype_ami": None,
+                "celltype_asw": None,
+                "phenotype_ari": None,
+                "phenotype_ami": None,
+                "phenotype_asw": None,
+                "patient_ari": None,
+                "patient_ami": None,
+                "patient_asw": None,
+                "embed_dim": None,
+                "missing_genes": None,
+                "batch_patient_ari_expr": None,
+                "batch_patient_ari_genept_w": None,
+                "phenotype_ari_k": None,
+                "phenotype_lr_accuracy": None,
+                "phenotype_lr_precision": None,
+                "phenotype_lr_recall": None,
+            }
+        )
 
     df = pd.DataFrame(results)
     df_rounded = df.copy()

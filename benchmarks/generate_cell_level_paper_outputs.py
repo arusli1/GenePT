@@ -146,7 +146,7 @@ def build_table2_genept_w(results: pd.DataFrame) -> pd.DataFrame:
             ds_key = "ms"
         else:
             continue
-        row = results[results["dataset"] == ds_key]
+        row = results[(results["dataset"] == ds_key) & (results["embedding"] == "genept_w")]
         if row.empty:
             continue
         row = row.iloc[0]
@@ -176,7 +176,7 @@ def build_table_c4_genept_w(results: pd.DataFrame) -> pd.DataFrame:
     }
     rows = []
     for ds_key, display in mapping.items():
-        row = results[results["dataset"] == ds_key]
+        row = results[(results["dataset"] == ds_key) & (results["embedding"] == "genept_w")]
         if row.empty:
             continue
         row = row.iloc[0]

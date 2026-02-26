@@ -14,6 +14,26 @@ embeddings:
       myeloid: ./embeddings/GenePT_s_data/myeloid_genept_s_embeddings.npy
       ms: ./embeddings/GenePT_s_data/ms_genept_s_embeddings.npy
       cardiomyocyte: ./embeddings/GenePT_s_data/cardiomyocyte_genept_s_embeddings.npy
+  scgpt:
+    # Optional: add scGPT cell embeddings per dataset to enable ensemble mode.
+    cell_embedding_paths:
+      aorta: ./embeddings/scgpt/aorta_embeddings.npy
+      hpancreas: ./embeddings/scgpt/hpancreas_embeddings.npy
+      myeloid: ./embeddings/scgpt/myeloid_embeddings.npy
+      ms: ./embeddings/scgpt/ms_embeddings.npy
+      cardiomyocyte: ./embeddings/scgpt/cardiomyocyte_embeddings.npy
+      artery: ./embeddings/scgpt/artery_embeddings.npy
+      bones: ./embeddings/scgpt/bones_embeddings.npy
+  geneformer:
+    # Optional: add Geneformer cell embeddings per dataset.
+    cell_embedding_paths:
+      aorta: ./embeddings/geneformer/aorta_embeddings.npy
+      hpancreas: ./embeddings/geneformer/hpancreas_embeddings.npy
+      myeloid: ./embeddings/geneformer/myeloid_embeddings.npy
+      ms: ./embeddings/geneformer/ms_embeddings.npy
+      cardiomyocyte: ./embeddings/geneformer/cardiomyocyte_embeddings.npy
+      artery: ./embeddings/geneformer/artery_embeddings.npy
+      bones: ./embeddings/geneformer/bones_embeddings.npy
 
 outputs:
   out_dir: ./benchmarks/outputs
@@ -25,12 +45,16 @@ outputs:
 
 datasets:
   aorta:
-    data_path: ./datasets/aorta/sample_aorta_data_updated.h5ad
+    data_path: ./datasets/GenePT_analysis_datasets/sample_aorta_data_updated.h5ad
     celltype_key: celltype
     phenotype_key: phenotype
     patient_key: patient
     source_url: https://drive.google.com/drive/folders/1LgFvJqWNq9BqHbuxB2tYf62kXs9KqL4t?usp=share_link
     notes: "Uses additional cell type annotations from meta_addsubcluster_cellcycle.csv"
+    section44:
+      batch_k: 11
+      phenotype_k: 4
+      pca_n: 50
 
   hpancreas:
     data_path: ./datasets/hpancreas/demo_test.h5ad
@@ -53,10 +77,29 @@ datasets:
     patient_key: "Sample Characteristic[individual]"
     source_url: https://drive.google.com/drive/folders/1Qd42YNabzyr2pWt9xoY4cVMTAxsNBt4v?usp=sharing
 
+  artery:
+    data_path: ./datasets/artery/artery_GSE159677.h5ad
+    celltype_key: null
+    phenotype_key: condition
+    patient_key: sample_id
+    source_url: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE159677
+    notes: "Raw GEO h5ad lacks cell-type annotations; phenotype=condition only."
+
+  bones:
+    data_path: ./datasets/bones/bones_GSE152805.h5ad
+    celltype_key: null
+    phenotype_key: tissue
+    patient_key: sample_id
+    source_url: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE152805
+    notes: "Raw GEO h5ad lacks cell-type annotations; phenotype=tissue."
+
   cardiomyocyte:
-    data_path: ./datasets/cardiomyocyte/sample_heart_data.h5ad
+    data_path: ./datasets/GenePT_analysis_datasets/sample_heart_data.h5ad
     celltype_key: SubCluster
     phenotype_key: disease
     patient_key: donor_id
     source_url: https://singlecell.broadinstitute.org/single_cell/study/SCP1303/single-nuclei-profiling-of-human-dilated-and-hypertrophic-cardiomyopathy
     notes: "Paper uses a 10% subset (see README.original.md)"
+    section44:
+      batch_k: 42
+      pca_n: 50
