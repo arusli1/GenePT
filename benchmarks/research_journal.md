@@ -1,0 +1,17 @@
+2026-02-25
+- Reviewed GenePT paper (Table 2) and extracted cell-level metrics (ARI/AMI/ASW) for Aorta, Myeloid, Pancreas, MS (Age), plus noted Artery/Bones missing.
+- Updated cell-level benchmark tasks to include phenotype kNN metrics and ASW; added L2 normalization of embeddings and warning filters.
+- Identified closest dataset files to paper: hPancreas demo_test (4218 cells, 11 types), MS c_data (age present), Myeloid reference+query combined, cardiomyocyte sample_heart_data.
+- Created `datasets/myeloid/myeloid_combined.h5ad` by concatenating reference+query (13178 cells).
+- Updated `benchmarks/cell_level_config.yaml` to use demo_test, myeloid_combined, ms c_data, and MS age label.
+- Added preprocessing in benchmark: normalize_total(1e4) + log1p prior to embeddings.
+- Adjusted preprocessing to use `adata.raw` when available and skip double log1p.
+- Re-ran benchmark pipeline; outputs refreshed under `benchmarks/outputs/` (one tight_layout warning).
+- Reorganized repo: moved embeddings to `embeddings/`, notebooks to `notebooks/`, aorta data to `datasets/aorta/`, and cross results to `benchmarks/outputs/aorta_cross/`. Updated config/README/notebook paths.
+- Extracted Table 2 cell-level metrics from `genept.pdf` for paper tracking.
+- Created `benchmarks/paper_tracking.md` to track paper vs. current metrics and gaps.
+- Searched for public links to Artery/Bones/Aorta 20%/Cardiomyocyte 10% and scGPT/Geneformer embeddings; no direct links found from web search.
+- Downloaded Geneformer gene_classification inputs to `datasets/geneformer/gene_classification/`.
+- Downloaded Gene2vec `predictionData` to `datasets/gene2vec/predictionData/`.
+- Downloaded scGPT vocab folder to `embeddings/scgpt_vocab/` (includes `vocab.json`).
+- Downloaded Geneformer token dictionaries (`token_dictionary_gc30M.pkl`, `token_dictionary_gc104M.pkl`) to `embeddings/geneformer/` (README link appears outdated).

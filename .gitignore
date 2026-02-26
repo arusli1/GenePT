@@ -1,12 +1,10 @@
 .DS_Store
 .ipynb_checkpoints
-.venv/
-
-# Local datasets and embeddings
 *.h5ad
 *.pickle
-GenePT_embedding_v2/
-GenePT_s_data/
-input_data/
-GPT_model_3_gene_and_protein.pickle
-GPT_model_3_gene_embeddings_model_3_large_clean.pickle
+*.npy
+*.npz
+.venv/
+embeddings/
+datasets/
+benchmarks/outputs/

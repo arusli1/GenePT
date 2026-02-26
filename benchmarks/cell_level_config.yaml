@@ -1,0 +1,62 @@
+# Cell-level benchmark configuration
+# Update paths/keys to match local files.
+
+embeddings:
+  genept_w:
+    gene_embedding_path: ./embeddings/GenePT_embedding_v2/GenePT_gene_embedding_ada_text.pickle
+    description: "GenePT-w (gene-level embeddings, weighted by expression)"
+  genept_s:
+    # Precomputed GenePT-s cell embeddings per dataset are required.
+    # Fill these paths once you locate/download them.
+    cell_embedding_paths:
+      aorta: ./embeddings/GenePT_s_data/aorta_genept_s_embeddings.npy
+      hpancreas: ./embeddings/GenePT_s_data/hpancreas_genept_s_embeddings.npy
+      myeloid: ./embeddings/GenePT_s_data/myeloid_genept_s_embeddings.npy
+      ms: ./embeddings/GenePT_s_data/ms_genept_s_embeddings.npy
+      cardiomyocyte: ./embeddings/GenePT_s_data/cardiomyocyte_genept_s_embeddings.npy
+
+outputs:
+  out_dir: ./benchmarks/outputs
+  results_basename: cell_level_benchmark
+
+# Dataset metadata
+# Use the links below to download missing datasets.
+# Make sure obs/var keys match the config.
+
+datasets:
+  aorta:
+    data_path: ./datasets/aorta/sample_aorta_data_updated.h5ad
+    celltype_key: celltype
+    phenotype_key: phenotype
+    patient_key: patient
+    source_url: https://drive.google.com/drive/folders/1LgFvJqWNq9BqHbuxB2tYf62kXs9KqL4t?usp=share_link
+    notes: "Uses additional cell type annotations from meta_addsubcluster_cellcycle.csv"
+
+  hpancreas:
+    data_path: ./datasets/hpancreas/demo_test.h5ad
+    celltype_key: Celltype
+    phenotype_key: null
+    patient_key: null
+    source_url: https://drive.google.com/drive/folders/1s9XjcSiPC-FYV3VeHrEa7SeZetrthQVV?usp=drive_link
+
+  myeloid:
+    data_path: ./datasets/myeloid/myeloid_combined.h5ad
+    celltype_key: cell_type
+    phenotype_key: cancer_type
+    patient_key: batch
+    source_url: https://drive.google.com/drive/folders/1VbpApQufZq8efFGakW3y8QDDpY9MBoDS?usp=drive_link
+
+  ms:
+    data_path: ./datasets/ms/c_data.h5ad
+    celltype_key: celltype
+    phenotype_key: "Sample Characteristic[age]"
+    patient_key: "Sample Characteristic[individual]"
+    source_url: https://drive.google.com/drive/folders/1Qd42YNabzyr2pWt9xoY4cVMTAxsNBt4v?usp=sharing
+
+  cardiomyocyte:
+    data_path: ./datasets/cardiomyocyte/sample_heart_data.h5ad
+    celltype_key: SubCluster
+    phenotype_key: disease
+    patient_key: donor_id
+    source_url: https://singlecell.broadinstitute.org/single_cell/study/SCP1303/single-nuclei-profiling-of-human-dilated-and-hypertrophic-cardiomyopathy
+    notes: "Paper uses a 10% subset (see README.original.md)"
