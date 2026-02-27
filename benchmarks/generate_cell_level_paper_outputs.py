@@ -18,6 +18,7 @@ except ImportError as exc:
 
 
 RANDOM_SEED = 2023
+FIG_DPI = 300
 
 
 PAPER_TABLE2_GENEPT_W = {
@@ -77,6 +78,18 @@ def sanitize_embeddings(cell_emb: np.ndarray) -> np.ndarray:
     return cell_emb
 
 
+def apply_plot_style():
+    sns.set_theme(style="white", context="paper", font_scale=0.95)
+    plt.rcParams.update(
+        {
+            "figure.dpi": FIG_DPI,
+            "savefig.dpi": FIG_DPI,
+            "axes.titlesize": 11,
+            "axes.labelsize": 10,
+        }
+    )
+
+
 def compute_umap(cell_emb: np.ndarray):
     pca = PCA(n_components=50, random_state=RANDOM_SEED, svd_solver="full")
     pca_result = pca.fit_transform(cell_emb)
@@ -102,7 +115,7 @@ def compute_umap_from_expression(adata):
     return expr.obsm["X_umap"]
 
 
-def plot_umap_ax(ax, embedding, labels, title):
+def plot_umap_ax(ax, embedding, labels, title, show_legend: bool = True):
     labels_series = pd.Series(labels).astype(str)
     labels_unique = labels_series.unique()
     colors = sns.color_palette("husl", len(labels_unique))
@@ -111,14 +124,28 @@ def plot_umap_ax(ax, embedding, labels, title):
         ax.scatter(
             embedding[mask, 0],
             embedding[mask, 1],
-            s=2,
+            s=3,
             label=label_name,
             color=colors[i],
-            alpha=0.3,
+            alpha=0.35,
+            linewidths=0,
+            rasterized=True,
         )
     ax.set_title(title)
     ax.set_xticks([])
     ax.set_yticks([])
+    if show_legend:
+        ncol = 1 if len(labels_unique) <= 6 else 2
+        ax.legend(
+            loc="lower left",
+            fontsize=5,
+            frameon=True,
+            ncol=ncol,
+            markerscale=1.5,
+            borderpad=0.2,
+            handletextpad=0.25,
+            columnspacing=0.7,
+        )
 
 
 def write_table(df: pd.DataFrame, path: Path):
@@ -209,16 +236,14 @@ def generate_aorta_figure(adata, genept_w_emb, out_path: Path, config):
     fig, axes = plt.subplots(2, 3, figsize=(14, 8))
     plot_umap_ax(axes[0, 0], umap_expr, phenotype_labels, "Original: phenotype")
     plot_umap_ax(axes[0, 1], umap_expr, celltype_labels, "Original: cell type")
-    plot_umap_ax(axes[0, 2], umap_expr, patient_labels, "Original: patient")
+    plot_umap_ax(axes[0, 2], umap_expr, patient_labels, "Original: patient", show_legend=False)
     plot_umap_ax(axes[1, 0], umap_genept, phenotype_labels, "GenePT-w: phenotype")
     plot_umap_ax(axes[1, 1], umap_genept, celltype_labels, "GenePT-w: cell type")
-    plot_umap_ax(axes[1, 2], umap_genept, patient_labels, "GenePT-w: patient")
-    for ax in axes.flatten():
-        ax.legend([], [], frameon=False)
+    plot_umap_ax(axes[1, 2], umap_genept, patient_labels, "GenePT-w: patient", show_legend=False)
     fig.suptitle("Aorta UMAPs (Original vs GenePT-w)")
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path, dpi=200)
+    fig.savefig(out_path, dpi=FIG_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -235,15 +260,13 @@ def generate_cardiomyocyte_figure(adata, genept_w_emb, out_path: Path, config):
 
     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
     plot_umap_ax(axes[0, 0], umap_expr, phenotype_labels, "Original: disease")
-    plot_umap_ax(axes[0, 1], umap_expr, patient_labels, "Original: patient")
+    plot_umap_ax(axes[0, 1], umap_expr, patient_labels, "Original: patient", show_legend=False)
     plot_umap_ax(axes[1, 0], umap_genept, phenotype_labels, "GenePT-w: disease")
-    plot_umap_ax(axes[1, 1], umap_genept, patient_labels, "GenePT-w: patient")
-    for ax in axes.flatten():
-        ax.legend([], [], frameon=False)
+    plot_umap_ax(axes[1, 1], umap_genept, patient_labels, "GenePT-w: patient", show_legend=False)
     fig.suptitle("Cardiomyocyte UMAPs (Original vs GenePT-w)")
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path, dpi=200)
+    fig.savefig(out_path, dpi=FIG_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -255,6 +278,7 @@ def main():
     out_dir = root / "benchmarks" / "outputs"
     tables_dir = out_dir / "paper_tables"
     figures_dir = out_dir / "paper_figures"
+    apply_plot_style()
 
     results_path = out_dir / "cell_level_benchmark.csv"
     if not results_path.exists():

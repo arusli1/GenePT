@@ -326,6 +326,9 @@ def main():
     missing_requirements = []
 
     for ds_name, ds_cfg in config["datasets"].items():
+        if not ds_cfg.get("enabled", True):
+            missing_requirements.append(f"Dataset disabled in config: {ds_name}")
+            continue
         data_path = root / ds_cfg["data_path"]
         if not data_path.exists():
             missing_requirements.append(

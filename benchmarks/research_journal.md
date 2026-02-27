@@ -15,3 +15,4 @@
 - Downloaded Gene2vec `predictionData` to `datasets/gene2vec/predictionData/`.
 - Downloaded scGPT vocab folder to `embeddings/scgpt_vocab/` (includes `vocab.json`).
 - Downloaded Geneformer token dictionaries (`token_dictionary_gc30M.pkl`, `token_dictionary_gc104M.pkl`) to `embeddings/geneformer/` (README link appears outdated).
+- Decided not to use marker-scored labels for Artery/Bones; awaiting author-provided labels for real benchmarks.

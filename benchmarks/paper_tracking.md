@@ -146,7 +146,7 @@ Paper Section 4.4; focuses on Cardiomyocyte and Aorta subsets.
 - Paper-style figures (GenePT-w only): `benchmarks/outputs/paper_figures/figure3_aorta_genept_w.png`, `figureD8_cardiomyocyte_genept_w.png`.
 
 ### What is missing (needed to match the paper)
-- Labels: Artery/Bones h5ad files still lack cell-type annotations needed for Table 2 / C4.
+- Labels: Artery/Bones author-provided cell-type labels.
 - Embeddings: GenePT-s cell embeddings (all datasets), Geneformer embeddings, scGPT embeddings.
 - Paper-specific runs: GenePT-s UMAPs for Figure 3 and Figure D8; Table 2 / Table C4 results with GenePT-s, Geneformer, scGPT.
 
@@ -184,6 +184,6 @@ Delta = ours - paper. This makes it easy to see how close we are.
 | Multiple Sclerosis | Cell type | 0.17 / 0.32 / -0.02 | 0.039 / 0.144 / -0.21 | -0.131 / -0.176 / -0.19 |
 
 ## Gaps to close
-- Labels: Artery/Bones cell-type annotations.
+- Labels: Artery/Bones author-provided cell-type annotations.
 - Embeddings: GenePT-s, Geneformer, scGPT (cell-level).
 - Verification: MS age binning; subset sampling; label key alignment.

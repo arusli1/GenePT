@@ -49,3 +49,18 @@ Outputs (under `benchmarks/outputs/`):
 - `cell_level_benchmark.csv` / `.md` / `.json`
 - UMAP plots per dataset/embedding
 - Bar charts for metric comparisons
+
+## Latest report and figure scripts
+For the current local reproduction workflow, use:
+- `benchmarks/generate_cell_level_paper_outputs.py` (paper-style UMAP/table assets)
+- `benchmarks/generate_cell_level_extra_outputs.py` (confusions, distributions, per-class diagnostics)
+- `benchmarks/generate_cell_level_auc_outputs.py` (cell-level ROC/PR diagnostics)
+- `benchmarks/generate_cell_level_paperstyle_panels.py` (Fig 2(g)-like, B4-like, B5-like local reconstructions)
+
+Main report:
+- Source: `cell_task_summary.tex`
+- Output: `cell_task_summary.pdf`
+
+Notes:
+- Current fully reproduced embedding is GenePT-w; scGPT/Geneformer/GenePT-s rows in the report are paper reference rows unless locally regenerated/aligned.
+- Artery and Bones entries remain excluded from local reproduced rows where official author-provided labels are unavailable.

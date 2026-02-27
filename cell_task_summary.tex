@@ -1,0 +1,204 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+
+\def\paperFigureThree{\detokenize{/Users/andrewrusli/.cursor/projects/Users-andrewrusli-Documents-GenePT/assets/Screenshot_2026-02-26_at_13.24.24-5c3ac5a8-19f3-4102-ac18-ec82b1229f09.png}}
+\def\paperFigureD8{\detokenize{/Users/andrewrusli/.cursor/projects/Users-andrewrusli-Documents-GenePT/assets/Screenshot_2026-02-26_at_13.31.19-d6715848-59d1-4f32-9e67-506d7b750449.png}}
+
+\title{\textbf{Recreation of GenePT Cell-Level Benchmarks}\\
+\large Side-by-Side Reproduction and Diagnostics}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This report recreates the available GenePT cell-level analyses using trusted labeled datasets and GenePT-w. We provide side-by-side figure comparisons with the paper, reconstructed benchmark tables in paper-like format, and additional diagnostic plots for model behavior.
+\end{abstract}
+
+\section{Methodological Alignment and Deviations}
+\textbf{Aligned with paper/repo methodology:}
+\begin{itemize}
+  \item \textbf{Dataset sources:} Aorta 20\% and Cardiomyocyte 10\% are taken from GenePT-provided analysis subsets (Google Drive links in the GenePT repo README).
+  \item \textbf{Cell embedding construction (GenePT-w):} gene embeddings are expression-weighted at cell level after normalization and log transform, then L2-normalized before downstream evaluation.
+  \item \textbf{Table 2-style metrics:} k-means clustering with $k$ set by label cardinality, and ARI/AMI/ASW reported against true labels.
+  \item \textbf{Table C4-style metrics:} 10-NN classifier with cosine distance and an 80/20 train-test split.
+\end{itemize}
+
+\textbf{Documented deviations / constraints:}
+\begin{itemize}
+  \item \textbf{Missing official labels:} Artery and Bones do not yet have author-provided cell-type annotations in our local pipeline, so reproduced values are marked \texttt{n/a}.
+  \item \textbf{Missing embeddings:} scGPT, Geneformer, and GenePT-s were not available as aligned per-cell embeddings for all datasets in this run; therefore, only GenePT-w is directly reproduced.
+  \item \textbf{AUC appendix figures:} Paper B6/B7 are gene-level PPI tasks, so they are intentionally excluded from side-by-side comparison in this cell-level report.
+  \item \textbf{Scope of this report:} This document is a constrained recreation based on currently available labeled datasets and embeddings, with all non-reproducible entries explicitly flagged.
+\end{itemize}
+
+\section{Main Figure Recreation}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.94\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{\paperFigureThree}
+  \caption{GenePT paper Figure 3.}
+\end{subfigure}
+
+\vspace{0.5em}
+\begin{subfigure}[t]{0.94\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{\detokenize{benchmarks/outputs/paper_figures/figure3_aorta_genept_w.png}}
+  \caption{Our recreated Figure 3-style panel (GenePT-w).}
+\end{subfigure}
+\caption{\textbf{Aorta UMAP comparison.} Top row is original expression; bottom row is GenePT embedding.}
+\label{fig:fig3-recreation}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.90\textwidth}
+  \centering
+  \includegraphics[width=\linewidth,height=0.35\textheight,keepaspectratio]{\paperFigureD8}
+  \caption{GenePT paper Figure D8.}
+\end{subfigure}
+
+\vspace{0.5em}
+\begin{subfigure}[t]{0.90\textwidth}
+  \centering
+  \includegraphics[width=\linewidth,height=0.35\textheight,keepaspectratio]{\detokenize{benchmarks/outputs/paper_figures/figureD8_cardiomyocyte_genept_w.png}}
+  \caption{Our recreated Figure D8-style panel (GenePT-w).}
+\end{subfigure}
+\caption{\textbf{Cardiomyocyte UMAP comparison.} Disease and patient separability in original versus embedding spaces.}
+\label{fig:figd8-recreation}
+\end{figure}
+
+\noindent\textbf{Figure-by-figure comparison notes (high-level).}
+\begin{itemize}
+  \item \textbf{Fig.~\ref{fig:fig3-recreation} (Aorta UMAPs):} Paper and our panel both compare original scRNA-seq space (top) versus GenePT embedding space (bottom), colored by phenotype/cell type/patient. We now render legends in the recreated panel to match the paper intent more closely. Similarity: both show coherent phenotype and cell-type grouping. Difference: cluster geometry and separability are not identical because we use available local subsets/processing and GenePT-w (the paper's panel uses GenePT-s).
+  \item \textbf{Fig.~\ref{fig:figd8-recreation} (Cardiomyocyte UMAPs):} Same comparison structure as the paper (original vs embedding; disease/patient). Similarity: both reveal disease/patient structure in low-dimensional space. Difference: exact manifold shape and overlap differ due to dataset split, embedding type, and preprocessing differences.
+  \item \textbf{Fig.~\ref{fig:fig2g-like-local} (Fig 2(g)-like):} Shows cell-type-specific activation of GenePT-derived gene programs; each row is a program and a random subset of genes is displayed in row labels for readability. Similarity: block-like expression patterns across immune cell types align with the paper's qualitative objective. Difference: we do not have the paper's original extracted program artifacts, so membership/counts differ.
+  \item \textbf{Fig.~\ref{fig:b4-like-local} and Fig.~\ref{fig:b5-like-local} (B4/B5-like):} Same analysis idea at thresholds 0.9 and 0.7. Similarity: overall program-level block patterns remain qualitatively stable across thresholds, consistent with the paper's robustness claim. Difference: absolute program composition and counts differ because these are local reconstructions from currently available data.
+  \item \textbf{Fig.~\ref{fig:model-grid-like-local} (model-grid-like diagnostic):} This is not a direct paper figure replacement; it is a local diagnostic comparing original scRNA-seq feature space versus GenePT-w for UMAP structure and 10-NN confusion. Interpreting performance: lower confusion in one column means that feature space is easier for this specific classifier/task on this split; it does \emph{not} imply universal superiority across all tasks.
+\end{itemize}
+
+\section{Recreated Benchmark Tables}
+
+\begingroup
+\renewcommand{\thetable}{C4}
+\begin{table}[H]
+\centering
+\caption{\textbf{Recreation in paper style.} Added an extra row (\textit{GenePT-w (ours)}) under each dataset block.}
+\label{tab:tablec4-paperstyle}
+\small
+\begin{tabular}{p{0.16\textwidth}p{0.30\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.10\textwidth}}
+\toprule
+\multicolumn{2}{c}{ } & \multicolumn{4}{c}{Classification metrics on the test set} \\
+\cmidrule(lr){3-6}
+Dataset & Embeddings & Accuracy & Precision & Recall & F1 \\
+\midrule
+\multirow{6}{*}{Aorta}
+ & scGPT & 0.95 & 0.95 & 0.93 & 0.93 \\
+ & Geneformer & 0.86 & 0.70 & 0.60 & 0.62 \\
+ & \textbf{GenePT-w} & \textbf{0.88} & \textbf{0.91} & \textbf{0.68} & \textbf{0.72} \\
+ & \textcolor{blue}{\textbf{GenePT-w (ours)}} & \textcolor{blue}{\textbf{0.882}} & \textcolor{blue}{\textbf{0.887}} & \textcolor{blue}{\textbf{0.692}} & \textcolor{blue}{\textbf{0.745}} \\
+ & GenePT-s & 0.86 & 0.70 & 0.60 & 0.62 \\
+ & Ensemble & 0.93 & 0.95 & 0.82 & 0.86 \\
+\midrule
+\multirow{6}{*}{Artery}
+ & scGPT & 0.94 & 0.92 & 0.89 & 0.90 \\
+ & Geneformer & 0.93 & 0.91 & 0.84 & 0.87 \\
+ & \textbf{GenePT-w} & \textbf{0.95} & \textbf{0.92} & \textbf{0.87} & \textbf{0.88} \\
+ & \textcolor{blue}{\textbf{GenePT-w (ours)}} & \textcolor{blue}{\textbf{--}} & \textcolor{blue}{\textbf{--}} & \textcolor{blue}{\textbf{--}} & \textcolor{blue}{\textbf{--}} \\
+ & GenePT-s & 0.92 & 0.88 & 0.82 & 0.84 \\
+ & Ensemble & 0.95 & 0.93 & 0.88 & 0.90 \\
+\midrule
+\multirow{6}{*}{Bones}
+ & scGPT & 0.34 & 0.36 & 0.48 & 0.25 \\
+ & Geneformer & 0.22 & 0.28 & 0.37 & 0.17 \\
+ & \textbf{GenePT-w} & \textbf{0.49} & \textbf{0.49} & \textbf{0.60} & \textbf{0.36} \\
+ & \textcolor{blue}{\textbf{GenePT-w (ours)}} & \textcolor{blue}{\textbf{--}} & \textcolor{blue}{\textbf{--}} & \textcolor{blue}{\textbf{--}} & \textcolor{blue}{\textbf{--}} \\
+ & GenePT-s & 0.37 & 0.37 & 0.49 & 0.28 \\
+ & Ensemble & 0.45 & 0.43 & 0.57 & 0.33 \\
+\midrule
+\multirow{6}{*}{Myeloid}
+ & scGPT & 0.53 & 0.34 & 0.29 & 0.30 \\
+ & Geneformer & 0.44 & 0.26 & 0.18 & 0.20 \\
+ & \textbf{GenePT-w} & \textbf{0.50} & \textbf{0.35} & \textbf{0.30} & \textbf{0.31} \\
+ & \textcolor{blue}{\textbf{GenePT-w (ours)}} & \textcolor{blue}{\textbf{0.577}} & \textcolor{blue}{\textbf{0.488}} & \textcolor{blue}{\textbf{0.414}} & \textcolor{blue}{\textbf{0.424}} \\
+ & GenePT-s & 0.52 & 0.33 & 0.27 & 0.28 \\
+ & Ensemble & 0.55 & 0.38 & 0.34 & 0.35 \\
+\midrule
+\multirow{6}{*}{Pancreas}
+ & scGPT & 0.77 & 0.61 & 0.56 & 0.55 \\
+ & Geneformer & 0.50 & 0.25 & 0.34 & 0.27 \\
+ & \textbf{GenePT-w} & \textbf{0.95} & \textbf{0.76} & \textbf{0.65} & \textbf{0.66} \\
+ & \textcolor{blue}{\textbf{GenePT-w (ours)}} & \textcolor{blue}{\textbf{0.944}} & \textcolor{blue}{\textbf{0.731}} & \textcolor{blue}{\textbf{0.736}} & \textcolor{blue}{\textbf{0.716}} \\
+ & GenePT-s & 0.89 & 0.65 & 0.53 & 0.56 \\
+ & Ensemble & 0.95 & 0.80 & 0.67 & 0.70 \\
+\midrule
+\multirow{6}{*}{Multiple Sclerosis}
+ & scGPT & 0.76 & 0.67 & 0.62 & 0.61 \\
+ & Geneformer & 0.44 & 0.47 & 0.36 & 0.34 \\
+ & \textbf{GenePT-w} & \textbf{0.38} & \textbf{0.46} & \textbf{0.28} & \textbf{0.24} \\
+ & \textcolor{blue}{\textbf{GenePT-w (ours)}} & \textcolor{blue}{\textbf{0.335}} & \textcolor{blue}{\textbf{0.491}} & \textcolor{blue}{\textbf{0.305}} & \textcolor{blue}{\textbf{0.317}} \\
+ & GenePT-s & 0.49 & 0.50 & 0.41 & 0.40 \\
+ & Ensemble & 0.72 & 0.66 & 0.57 & 0.55 \\
+\bottomrule
+\end{tabular}
+\vspace{0.4em}
+\begin{minipage}{0.97\linewidth}
+\footnotesize
+\textit{Notes:} \textit{Ensemble} denotes \textit{scGPT + GenePT-w + GenePT-s}. \textbf{--} indicates datasets without official author-provided labels in our current local benchmark pipeline (Artery/Bones), so no trustworthy reproduced row is reported.
+\end{minipage}
+\end{table}
+\endgroup
+
+\section{Additional Diagnostics}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\textwidth]{\detokenize{benchmarks/outputs/extra_figures/paperstyle/fig2g_like_gene_set_activation.png}}
+  \caption{\textbf{Fig 2(g)-like local reconstruction.} Cell-type specific activation among GenePT-derived gene programs in a human immune tissue dataset, where a random subset of genes is displayed for each program (for readability). As in the original paper's Fig.~2(g), this view highlights block-like cell-type enrichment patterns rather than single-gene effects.}
+  \label{fig:fig2g-like-local}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\textwidth]{\detokenize{benchmarks/outputs/extra_figures/paperstyle/b4_like_gene_set_activation.png}}
+  \caption{\textbf{B4-like local reconstruction (threshold 0.9).} Cell types are shown on the x-axis and GenePT-derived gene programs (size $>$ 10 genes) on the y-axis. Color indicates normalized average expression of each program in each cell type.}
+  \label{fig:b4-like-local}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\textwidth]{\detokenize{benchmarks/outputs/extra_figures/paperstyle/b5_like_gene_set_activation.png}}
+  \caption{\textbf{B5-like local reconstruction (threshold 0.7).} Same analysis as Fig.~\ref{fig:b4-like-local}, but with a looser similarity threshold that merges more overlapping candidate programs.}
+  \label{fig:b5-like-local}
+\end{figure}
+
+\noindent\textbf{Interpretation and relation to the original paper.}
+In the original paper Appendix B4/B5, the authors show GenePT-extracted programs with thresholds 0.9 and 0.7 and report stable cell-type-specific structure across thresholds. Our local reconstruction follows the same \emph{idea}: we generate candidate marker-based programs from available labeled data, merge highly overlapping programs by Jaccard similarity (0.9 for B4-like and 0.7 for B5-like), keep programs larger than 10 genes, and then visualize per-cell-type activation. A similar block pattern between Fig.~\ref{fig:b4-like-local} and Fig.~\ref{fig:b5-like-local} indicates qualitative stability of the program-level structure in our available data, while absolute program counts and exact composition differ from the paper because we do not have the paper's full original gene-program extraction run artifacts.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\textwidth]{\detokenize{benchmarks/outputs/extra_figures/paperstyle/model_grid_like_aorta_original_vs_geneptw.png}}
+  \caption{\textbf{Model-grid-like local reconstruction.} Two-column panel with only reproducible spaces in this run (Original scRNA-seq data and GenePT-w). In each column, the lower heatmap is a 10-NN classifier diagnostic in that feature space; ground-truth cell-type labels are used only as held-out evaluation targets, not as input features. Missing model columns (scGPT, Geneformer, fine-tuned GenePT-w) are intentionally omitted to avoid non-reproducible placeholders.}
+  \label{fig:model-grid-like-local}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.78\textwidth]{\detokenize{benchmarks/outputs/extra_figures/genept_w_metrics_heatmap.png}}
+  \caption{\textbf{GenePT-w metric heatmap} over available cell-level tasks (ARI/AMI/ASW groups).}
+  \label{fig:metrics-heatmap}
+\end{figure}
+
+\end{document}
